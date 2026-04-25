@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # The Axum API
+  api:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - SURREAL_URL=surrealdb:8000
+      - CACHE_URL=redis://dragonfly:6379
+      - RUST_LOG=debug
+    depends_on:
+      - surrealdb
+      - dragonfly
+
+  # SurrealDB - Ultra-fast multi-model database
+  surrealdb:
+    image: surrealdb/surrealdb:v2.0.0
+    ports:
+      - "8000:8000"
+    command: start --log debug --user root --pass root_password memory
+    volumes:
+      - surreal_data:/data
+
+  # Dragonfly - High-speed Redis replacement (25x faster)
+  dragonfly:
+    image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    ports:
+      - "6379:6379"
+    ulimits:
+      memlock: -1
+    volumes:
+      - dragonfly_data:/data
+
+volumes:
+  surreal_data:
+  dragonfly_data:

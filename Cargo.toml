@@ -1,0 +1,34 @@
+[package]
+name = "transparency-backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web framework
+axum = "0.7.5"
+tokio = { version = "1.37.0", features = ["full"] }
+tower = "0.4.13"
+tower-http = { version = "0.5.2", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+
+# Ultra-Fast Database (SurrealDB)
+surrealdb = { version = "2.0.0", features = ["kv-mem", "protocol-http"] }
+
+# Caching (Redis/Dragonfly)
+redis = { version = "0.25.4", features = ["tokio-comp", "json"] }
+bb8 = "0.8.3"
+bb8-redis = "0.15.0"
+
+# Utils
+dotenvy = "0.15.7"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+uuid = { version = "1.8.0", features = ["v4", "serde"] }
+chrono = { version = "0.4.38", features = ["serde"] }
+reqwest = { version = "0.12.4", features = ["json"] }
+thiserror = "1.0.61"
+validator = { version = "0.18.1", features = ["derive"] }
+rand = "0.8.5"
