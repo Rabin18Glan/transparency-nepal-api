@@ -8,6 +8,7 @@ pub struct AppState {
     pub db: Db,
     pub cache: CachePool,
     pub config: AppConfig,
+    pub paseto: crate::common::auth::PasetoAuth,
 }
 
 pub type SharedState = Arc<AppState>;

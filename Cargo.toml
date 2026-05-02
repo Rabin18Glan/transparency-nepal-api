@@ -32,3 +32,4 @@ reqwest = { version = "0.12.4", features = ["json"] }
 thiserror = "1.0.61"
 validator = { version = "0.18.1", features = ["derive"] }
 rand = "0.8.5"
+rusty_paseto = "0.7"

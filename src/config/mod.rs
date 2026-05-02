@@ -16,10 +16,15 @@ pub async fn initialize_app_state() -> Arc<AppState> {
     // 3. Initialize Cache
     let cache = cache::init_cache(&config.cache_url).await;
 
-    // 4. Wrap in AppState
+    // 4. Initialize PasetoAuth
+    let paseto = crate::common::auth::PasetoAuth::new(&config.paseto_secret)
+        .expect("Failed to initialize PASETO Auth");
+
+    // 5. Wrap in AppState
     Arc::new(AppState {
         db,
         cache,
         config: config.clone(),
+        paseto,
     })
 }

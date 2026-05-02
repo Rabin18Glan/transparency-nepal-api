@@ -35,6 +35,7 @@ pub struct VerifyOtpRequest {
 pub struct VerifyOtpResponse {
     pub verified: bool,
     pub message: String,
+    pub token: Option<String>,
 }
 #[derive(Debug, Serialize)]
 pub struct OtpResponse {

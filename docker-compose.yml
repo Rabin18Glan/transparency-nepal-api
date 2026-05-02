@@ -27,6 +27,7 @@ services:
   # Dragonfly - High-speed Redis replacement (25x faster)
   dragonfly:
     image: 'docker.dragonflydb.io/dragonflydb/dragonfly'
+    command: --proactor_threads=2
     ports:
       - "6379:6379"
     ulimits:
