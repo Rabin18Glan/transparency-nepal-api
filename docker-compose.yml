@@ -2,18 +2,18 @@ version: '3.8'
 
 services:
   # The Axum API
-  api:
-    build: .
-    ports:
-      - "4000:4000"
-    environment:
-      - PORT=4000
-      - SURREAL_URL=surrealdb:8000
-      - CACHE_URL=redis://dragonfly:6379
-      - RUST_LOG=debug
-    depends_on:
-      - surrealdb
-      - dragonfly
+  # api:
+  #   build: .
+  #   ports:
+  #     - "4000:4000"
+  #   environment:
+  #     - PORT=4000
+  #     - SURREAL_URL=surrealdb:8000
+  #     - CACHE_URL=redis://dragonfly:6379
+  #     - RUST_LOG=debug
+  #   depends_on:
+  #     - surrealdb
+  #     - dragonfly
 
   # SurrealDB - Ultra-fast multi-model database
   surrealdb:
