@@ -1,24 +1,15 @@
-use axum::{
-    extract::{State, Json},
-    routing::post,
-    Router,
-};
+use axum::extract::{Json, State};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-use crate::state::SharedState;
 use super::model::CreateContributionRequest;
 use super::repo::ContributionRepository;
 use super::service::ContributionService;
+use crate::core::state::SharedState;
 
-pub fn routes() -> Router<SharedState> {
-    Router::new()
-        .route("/", post(create_contribution).get(list_contributions))
-}
-
-async fn create_contribution(
+pub async fn create_contribution(
     State(state): State<SharedState>,
-    user: crate::common::auth::AuthUser,
+    user: crate::shared::auth::AuthUser,
     Json(payload): Json<CreateContributionRequest>,
 ) -> Json<Value> {
     let repo = Arc::new(ContributionRepository::new(state.clone()));
@@ -32,9 +23,7 @@ async fn create_contribution(
     }
 }
 
-async fn list_contributions(
-    State(state): State<SharedState>,
-) -> Json<Value> {
+pub async fn list_contributions(State(state): State<SharedState>) -> Json<Value> {
     let repo = Arc::new(ContributionRepository::new(state.clone()));
     let service = ContributionService::new(repo);
 

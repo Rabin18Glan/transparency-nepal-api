@@ -1,11 +1,12 @@
+pub mod controller;
 pub mod model;
 pub mod repo;
+pub mod routes;
 pub mod service;
-pub mod controller;
 
+use crate::core::state::SharedState;
 use axum::Router;
-use crate::state::SharedState;
 
 pub fn routes() -> Router<SharedState> {
-    controller::routes()
+    routes::routes()
 }

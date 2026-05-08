@@ -1,5 +1,5 @@
-use crate::error::AppError;
-use crate::state::SharedState;
+use crate::core::error::AppError;
+use crate::core::state::SharedState;
 use bb8_redis::redis::AsyncCommands;
 
 pub struct AuthRepository {

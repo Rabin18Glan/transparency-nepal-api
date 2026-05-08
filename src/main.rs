@@ -6,11 +6,11 @@ use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod common;
-mod config;
-mod error;
+mod core;
 mod features;
-mod state;
+mod shared;
+
+use crate::core::config;
 
 #[tokio::main]
 async fn main() {

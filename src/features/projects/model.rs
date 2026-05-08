@@ -4,7 +4,10 @@ use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Project {
-    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "crate::features::projects::model::serialize_id")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::features::projects::model::serialize_id"
+    )]
     pub id: Option<Thing>,
     pub project_code: String,
     pub title: String,
@@ -16,10 +19,10 @@ pub struct Project {
     pub planned_start_date: Option<String>,
     pub estimated_completion_date: Option<String>,
     pub estimated_total_cost: f64,
-    
+
     // Geographic data
     pub location: ProjectLocation,
-    
+
     // Detailed sections (Nested for simplicity in this vertical slice)
     #[serde(default)]
     pub personnel: Vec<ProjectPersonnel>,
@@ -94,7 +97,7 @@ pub struct ProjectPersonnel {
 pub struct FinancialFlow {
     pub amount: f64,
     pub fiscal_year: String,
-    pub source: String, // National Budget, Aid, Private
+    pub source: String,    // National Budget, Aid, Private
     pub flow_type: String, // Capital, Operational, etc.
 }
 
@@ -156,6 +159,20 @@ pub struct CreateProjectRequest {
     pub ward: i32,
     pub latitude: f64,
     pub longitude: f64,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct UpdateProjectRequest {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<ProjectStatus>,
+    pub estimated_total_cost: Option<f64>,
+    pub province: Option<String>,
+    pub district: Option<String>,
+    pub municipality: Option<String>,
+    pub ward: Option<i32>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

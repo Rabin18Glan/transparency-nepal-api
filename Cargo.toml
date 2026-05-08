@@ -5,10 +5,11 @@ edition = "2021"
 
 [dependencies]
 # Web framework
-axum = "0.7.5"
+axum = { version = "0.7.5", features = ["ws"] }
 tokio = { version = "1.37.0", features = ["full"] }
 tower = "0.4.13"
 tower-http = { version = "0.5.2", features = ["cors", "trace"] }
+futures = "0.3.30"
 
 # Serialization
 serde = { version = "1.0.203", features = ["derive"] }
@@ -33,3 +34,4 @@ thiserror = "1.0.61"
 validator = { version = "0.18.1", features = ["derive"] }
 rand = "0.8.5"
 rusty_paseto = "0.7"
+lettre = { version = "0.11.7", default-features = false, features = ["tokio1-rustls-tls", "serde", "smtp-transport", "builder"] }

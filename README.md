@@ -1,177 +1,73 @@
-# Transparency in the Land of Gorkhas — Backend
+# Transparency Nepal
 
-High-performance Rust API for a civic transparency platform tracking infrastructure projects across Nepal.
+A civic transparency platform dedicated to tracking infrastructure projects and public spending across Nepal. Our mission is to bridge the gap between citizens and public works by providing real-time data, community feedback, and accountability.
 
-## Stack
+## The Story: How it Started
 
-| Layer | Technology | Why |
-|---|---|---|
-| HTTP | [Axum](https://github.com/tokio-rs/axum) | Async, zero-cost abstractions, type-safe extractors |
-| Database | [SurrealDB](https://surrealdb.com) | Multi-model, geospatial queries, graph relationships |
-| Cache | [DragonflyDB](https://www.dragonflydb.io) | 25× faster Redis-compatible cache for OTP storage |
-| Runtime | Tokio | Industry-standard async runtime |
-| SMS | [Sparrow SMS](https://sparrowsms.com) | Nepal-native SMS gateway |
-| WhatsApp | [Meta Cloud API](https://developers.facebook.com/docs/whatsapp) | Official WhatsApp messaging |
+Born out of a desire to see every rupee of public and donated funds translate into real impact, this project started as a grassroots initiative to digitize the tracking of construction and social projects in Nepal. 
 
-## Architecture
+In a landscape where infrastructure projects often lack a central, accessible hub, citizens can struggle to verify progress, see budgets, or report issues. We built Transparency Nepal to bring that data into the light, ensuring that accountability is not just a policy, but a functional reality for every community.
 
-Vertical Slice Architecture — each feature is self-contained with its own `model`, `repo`, `service`, and `controller`.
+## Core Features
 
-```
-src/
-├── config/           # App-wide infrastructure (env, db, cache, providers)
-├── common/           # Shared utilities (OTP generation)
-├── features/
-│   ├── auth/         # OTP request & verify
-│   └── projects/     # Project CRUD & map feed
-├── error.rs          # Unified error type → HTTP status mapping
-├── state.rs          # Shared application state (Arc<AppState>)
-└── main.rs
-```
+- **Project Tracking**: Visualize infrastructure projects on an interactive map.
+- **Real-time Feedback**: Citizens can submit opinions and react to project progress.
+- **Accountability**: Track budgets, timelines, and responsible agencies.
+- **Secure Access**: Simple, secure phone-based authentication via OTP (SMS/WhatsApp).
 
-## Setup
+## Running Locally
+
+Follow these steps to get the backend up and running on your machine.
 
 ### Prerequisites
 
-- Rust (stable)
-- Docker
+- **Rust**: [Install Rust](https://rustup.rs/) (Stable)
+- **Docker**: For running the database and cache.
 
 ### 1. Start Infrastructure
+We use **SurrealDB** as our primary database and **DragonflyDB** (Redis-compatible) for ultra-fast caching and OTP management.
 
 ```bash
+cd apps/backend
 docker compose up surrealdb dragonfly -d
 ```
 
 ### 2. Configure Environment
-
-Copy `.env` and fill in your credentials:
+Create a `.env` file in the `apps/backend` directory:
 
 ```env
+# Infrastructure
 SURREAL_URL=127.0.0.1:8000
-PORT=3000
 CACHE_URL=redis://127.0.0.1/
+PORT=3000
 
-# Sparrow SMS (https://sparrowsms.com)
-SPARROW_SMS_TOKEN=your_token_here
+# Authentication
+PASETO_SECRET=your_32_byte_secret_here_for_auth
+
+# Optional: Notification Providers (Mocked in debug mode)
+SPARROW_SMS_TOKEN=...
 SPARROW_SMS_SENDER=GORKHAS
-
-# Meta WhatsApp Cloud API (https://developers.facebook.com)
-WHATSAPP_ACCESS_TOKEN=your_access_token_here
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
+WHATSAPP_ACCESS_TOKEN=...
+WHATSAPP_PHONE_NUMBER_ID=...
 ```
 
-### 3. Run
-
+### 3. Start the Server
 ```bash
 cargo run
 ```
 
-> **Debug mode**: OTP is always `123456` and no real SMS/WhatsApp messages are dispatched.
-> Build with `cargo build --release` to enable real providers.
+The API will be available at `http://localhost:3000`. 
+> **Note**: In debug mode (default), the OTP is always `123456` and no real messages are sent.
 
-## API Reference
+## Project Structure
 
-### Auth
+The codebase is designed to be "Simple, Powerful, and Less Messy" following Clean Architecture principles:
 
-#### `POST /api/auth/otp/request`
-
-Request an OTP via SMS or WhatsApp.
-
-```json
-{
-  "phone_number": "9841234567",
-  "channel": "sms"        // "sms" (default) | "whatsapp"
-}
-```
-
-**Response**
-```json
-{
-  "message": "OTP successfully sent",
-  "expires_in_seconds": 300
-}
-```
+- `src/core/`: The heart of the app—business-level interfaces, state, and unified notifications.
+- `src/shared/`: Reusable library components and concrete implementations (adapters) for providers and auth.
+- `src/features/`: Vertical slices containing feature-specific logic (Projects, Auth, Contributions, etc.).
+- `src/main.rs`: The entry point that wires everything together.
 
 ---
 
-#### `POST /api/auth/otp/verify`
-
-Verify a received OTP.
-
-```json
-{
-  "phone_number": "9841234567",
-  "otp": "123456"
-}
-```
-
-**Response**
-```json
-{
-  "verified": true,
-  "message": "OTP verified successfully"
-}
-```
-
----
-
-### Projects
-
-#### `POST /api/projects`
-
-Create a new infrastructure project.
-
-```json
-{
-  "title": "Gorkha Community Hospital",
-  "description": "Funding an additional wing for the pediatric ward.",
-  "expected_budget": 50000.0,
-  "latitude": 28.0006,
-  "longitude": 84.6254
-}
-```
-
----
-
-#### `GET /api/projects`
-
-Retrieve all projects for map rendering.
-
-```json
-[
-  {
-    "title": "Gorkha Community Hospital",
-    "status": "planning",
-    "latitude": 28.0006,
-    "longitude": 84.6254,
-    ...
-  }
-]
-```
-
-## Docker (Full Stack)
-
-To run the entire stack including the API in Docker:
-
-```bash
-docker compose up
-```
-
-> Requires a production build. See `Dockerfile` for the multi-stage build configuration.
-
-## Error Format
-
-All errors return a consistent JSON body:
-
-```json
-{
-  "error": "Human-readable description"
-}
-```
-
-| Status | Meaning |
-|---|---|
-| `400` | Validation error |
-| `401` | Unauthorized (wrong OTP) |
-| `404` | Not found (OTP expired) |
-| `500` | Internal server error |
+*Ensuring every stone laid in Nepal is accounted for.*

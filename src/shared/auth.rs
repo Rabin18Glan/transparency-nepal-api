@@ -1,8 +1,8 @@
+use crate::core::error::AppError;
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use chrono::{Duration, Utc};
 use rusty_paseto::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::error::AppError;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthUser {
@@ -63,12 +63,12 @@ impl PasetoAuth {
 }
 
 #[async_trait]
-impl FromRequestParts<crate::state::SharedState> for AuthUser {
+impl FromRequestParts<crate::core::state::SharedState> for AuthUser {
     type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &crate::state::SharedState,
+        state: &crate::core::state::SharedState,
     ) -> Result<Self, Self::Rejection> {
         let auth_header = parts
             .headers

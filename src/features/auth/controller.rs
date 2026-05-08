@@ -1,7 +1,7 @@
 use super::model::{OtpRequest, OtpResponse, VerifyOtpRequest, VerifyOtpResponse};
 use super::service::AuthService;
-use crate::error::AppError;
-use crate::state::SharedState;
+use crate::core::error::AppError;
+use crate::core::state::SharedState;
 use axum::{extract::State, Json};
 use validator::Validate;
 

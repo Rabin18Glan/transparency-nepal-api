@@ -1,16 +1,18 @@
-use crate::state::SharedState;
-use crate::error::AppError;
-use super::model::{Project, CreateProjectRequest, ProjectOpinion, ReactionType};
+use super::model::{CreateProjectRequest, Project, ProjectOpinion, ReactionType};
 use super::repo::ProjectRepository;
+use crate::core::error::AppError;
+use crate::core::state::SharedState;
 
 pub struct ProjectService {
     repo: ProjectRepository,
+    state: SharedState,
 }
 
 impl ProjectService {
     pub fn new(state: SharedState) -> Self {
         Self {
-            repo: ProjectRepository::new(state),
+            repo: ProjectRepository::new(state.clone()),
+            state,
         }
     }
 
@@ -18,6 +20,14 @@ impl ProjectService {
         tracing::info!("Creating new project: {}", payload.title);
         let project = self.repo.create_project(payload).await?;
         tracing::info!("Successfully created project ID: {:?}", project.id);
+
+        // Broadcast to WS
+        let event = serde_json::json!({
+            "type": "project_created",
+            "data": project
+        });
+        let _ = self.state.tx.send(event.to_string());
+
         Ok(project)
     }
 
@@ -32,6 +42,24 @@ impl ProjectService {
         self.repo.get_project_by_id(id).await
     }
 
+    pub async fn update_project(
+        &self,
+        id: String,
+        payload: super::model::UpdateProjectRequest,
+    ) -> Result<Project, AppError> {
+        tracing::info!("Updating project ID: {}", id);
+        let project = self.repo.update_project(id, payload).await?;
+
+        // Broadcast to WS
+        let event = serde_json::json!({
+            "type": "project_updated",
+            "data": project
+        });
+        let _ = self.state.tx.send(event.to_string());
+
+        Ok(project)
+    }
+
     pub async fn add_opinion(&self, id: String, comment: String) -> Result<Project, AppError> {
         tracing::info!("Adding opinion to project ID: {}", id);
         let opinion = ProjectOpinion {
@@ -41,12 +69,30 @@ impl ProjectService {
             timestamp: chrono::Utc::now().to_rfc3339(),
         };
 
-        self.repo.add_opinion(id, opinion).await
+        let project = self.repo.add_opinion(id, opinion).await?;
+
+        // Broadcast to WS
+        let event = serde_json::json!({
+            "type": "project_opinion_added",
+            "data": project
+        });
+        let _ = self.state.tx.send(event.to_string());
+
+        Ok(project)
     }
 
     pub async fn react(&self, id: String, reaction: ReactionType) -> Result<Project, AppError> {
         tracing::info!("Adding reaction to project ID: {}", id);
         let user_id = "user_1".to_string(); // In real app, this would come from session
-        self.repo.react(id, user_id, reaction).await
+        let project = self.repo.react(id, user_id, reaction).await?;
+
+        // Broadcast to WS
+        let event = serde_json::json!({
+            "type": "project_reaction_updated",
+            "data": project
+        });
+        let _ = self.state.tx.send(event.to_string());
+
+        Ok(project)
     }
 }

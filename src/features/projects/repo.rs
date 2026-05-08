@@ -1,6 +1,8 @@
-use crate::error::AppError;
-use crate::state::SharedState;
-use super::model::{Project, CreateProjectRequest, ProjectStatus, ProjectLocation, ProjectOpinion, ReactionType};
+use super::model::{
+    CreateProjectRequest, Project, ProjectLocation, ProjectOpinion, ProjectStatus, ReactionType,
+};
+use crate::core::error::AppError;
+use crate::core::state::SharedState;
 use chrono::Utc;
 
 pub struct ProjectRepository {
@@ -39,21 +41,27 @@ impl ProjectRepository {
             results_framework: vec![],
             communications_log: vec![],
             opinions: vec![],
-            reactions: vec![] ,
+            reactions: vec![],
             created_at: Utc::now().to_rfc3339(),
         };
 
-        let created: Option<Project> = self.state.db
+        let created: Option<Project> = self
+            .state
+            .db
             .create("project")
             .content(record)
             .await
             .map_err(|e| AppError::InternalServerError(format!("Database error: {}", e)))?;
 
-        created.ok_or_else(|| AppError::InternalServerError("Failed to return created project".to_string()))
+        created.ok_or_else(|| {
+            AppError::InternalServerError("Failed to return created project".to_string())
+        })
     }
 
     pub async fn get_all_projects(&self) -> Result<Vec<Project>, AppError> {
-        let projects: Vec<Project> = self.state.db
+        let projects: Vec<Project> = self
+            .state
+            .db
             .select("project")
             .await
             .map_err(|e| AppError::InternalServerError(format!("Database error: {}", e)))?;
@@ -63,18 +71,80 @@ impl ProjectRepository {
 
     pub async fn get_project_by_id(&self, id: String) -> Result<Project, AppError> {
         let clean_id = id.replace("project:", "");
-        let project: Option<Project> = self.state.db
-            .select(("project", &clean_id))
-            .await
-            .map_err(|e| {
-                tracing::error!("SURREALDB SELECT ERROR for {}: {}", clean_id, e);
-                AppError::InternalServerError(format!("Database error: {}", e))
-            })?;
+        let project: Option<Project> =
+            self.state
+                .db
+                .select(("project", &clean_id))
+                .await
+                .map_err(|e| {
+                    tracing::error!("SURREALDB SELECT ERROR for {}: {}", clean_id, e);
+                    AppError::InternalServerError(format!("Database error: {}", e))
+                })?;
 
         project.ok_or_else(|| AppError::NotFound(format!("Project with ID {} not found", id)))
     }
 
-    pub async fn add_opinion(&self, project_id: String, opinion: ProjectOpinion) -> Result<Project, AppError> {
+    pub async fn update_project(
+        &self,
+        id: String,
+        payload: super::model::UpdateProjectRequest,
+    ) -> Result<Project, AppError> {
+        let mut project = self.get_project_by_id(id.clone()).await?;
+
+        if let Some(title) = payload.title {
+            project.title = title;
+        }
+        if let Some(description) = payload.description {
+            project.description = description;
+        }
+        if let Some(status) = payload.status {
+            project.status = status;
+        }
+        if let Some(estimated_total_cost) = payload.estimated_total_cost {
+            project.estimated_total_cost = estimated_total_cost;
+        }
+        if let Some(province) = payload.province {
+            project.location.province = province;
+        }
+        if let Some(district) = payload.district {
+            project.location.district = district;
+        }
+        if let Some(municipality) = payload.municipality {
+            project.location.municipality = municipality;
+        }
+        if let Some(ward) = payload.ward {
+            project.location.ward = ward;
+        }
+        if let Some(latitude) = payload.latitude {
+            project.location.latitude = latitude;
+        }
+        if let Some(longitude) = payload.longitude {
+            project.location.longitude = longitude;
+        }
+
+        let clean_id = id.replace("project:", "");
+        let mut update_content = project.clone();
+        update_content.id = None;
+
+        let updated: Option<Project> = self
+            .state
+            .db
+            .update(("project", &clean_id))
+            .content(update_content)
+            .await
+            .map_err(|e| {
+                tracing::error!("SURREALDB UPDATE ERROR for {}: {}", clean_id, e);
+                AppError::InternalServerError(format!("Database error: {}", e))
+            })?;
+
+        updated.ok_or_else(|| AppError::NotFound(format!("Project with ID {} not found", id)))
+    }
+
+    pub async fn add_opinion(
+        &self,
+        project_id: String,
+        opinion: ProjectOpinion,
+    ) -> Result<Project, AppError> {
         let mut project = self.get_project_by_id(project_id.clone()).await?;
         project.opinions.push(opinion);
 
@@ -82,7 +152,9 @@ impl ProjectRepository {
         let mut update_content = project.clone();
         update_content.id = None; // Avoid SurrealDB conflict with explicit ID in body
 
-        let updated: Option<Project> = self.state.db
+        let updated: Option<Project> = self
+            .state
+            .db
             .update(("project", &clean_id))
             .content(update_content)
             .await
@@ -91,12 +163,18 @@ impl ProjectRepository {
                 AppError::InternalServerError(format!("Database error: {}", e))
             })?;
 
-        updated.ok_or_else(|| AppError::NotFound(format!("Project with ID {} not found", project_id)))
+        updated
+            .ok_or_else(|| AppError::NotFound(format!("Project with ID {} not found", project_id)))
     }
 
-    pub async fn react(&self, project_id: String, user_id: String, reaction_type: ReactionType) -> Result<Project, AppError> {
+    pub async fn react(
+        &self,
+        project_id: String,
+        user_id: String,
+        reaction_type: ReactionType,
+    ) -> Result<Project, AppError> {
         let mut project = self.get_project_by_id(project_id.clone()).await?;
-        
+
         // Find existing reaction from this user and update it, or add new
         if let Some(existing) = project.reactions.iter_mut().find(|r| r.user_id == user_id) {
             existing.reaction = reaction_type;
@@ -113,7 +191,9 @@ impl ProjectRepository {
         let mut update_content = project.clone();
         update_content.id = None; // Avoid SurrealDB conflict with explicit ID in body
 
-        let updated: Option<Project> = self.state.db
+        let updated: Option<Project> = self
+            .state
+            .db
             .update(("project", &clean_id))
             .content(update_content)
             .await
@@ -122,6 +202,7 @@ impl ProjectRepository {
                 AppError::InternalServerError(format!("Database error: {}", e))
             })?;
 
-        updated.ok_or_else(|| AppError::NotFound(format!("Project with ID {} not found", project_id)))
+        updated
+            .ok_or_else(|| AppError::NotFound(format!("Project with ID {} not found", project_id)))
     }
 }

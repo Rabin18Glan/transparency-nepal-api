@@ -1,4 +1,4 @@
-use crate::state::SharedState;
+use crate::core::state::SharedState;
 
 use super::model::Contribution;
 
@@ -12,12 +12,17 @@ impl ContributionRepository {
         Self { state }
     }
 
-    pub async fn create(&self, contribution: Contribution) -> Result<Contribution, surrealdb::Error> {
-        let created: Option<Contribution> = self.state.db
+    pub async fn create(
+        &self,
+        contribution: Contribution,
+    ) -> Result<Contribution, surrealdb::Error> {
+        let created: Option<Contribution> = self
+            .state
+            .db
             .create("contribution")
             .content(contribution)
             .await?;
-        
+
         Ok(created.unwrap())
     }
 

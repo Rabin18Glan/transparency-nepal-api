@@ -1,9 +1,9 @@
-use crate::state::SharedState;
-use crate::error::AppError;
-use crate::common::utils;
-use crate::config::providers::{SmsProvider, WhatsAppProvider};
 use super::model::{OtpChannel, OtpResponse, VerifyOtpResponse};
 use super::repo::AuthRepository;
+use crate::core::error::AppError;
+use crate::core::notifications::NotificationService;
+use crate::core::state::SharedState;
+use crate::shared::utils;
 
 pub struct AuthService {
     state: SharedState,
@@ -16,35 +16,39 @@ impl AuthService {
         Self { state, repo }
     }
 
-    pub async fn request_otp(&self, phone_number: String, channel: OtpChannel) -> Result<OtpResponse, AppError> {
-        tracing::info!("Processing OTP request for {} via {:?}", phone_number, channel);
+    pub async fn request_otp(
+        &self,
+        phone_number: String,
+        channel: OtpChannel,
+    ) -> Result<OtpResponse, AppError> {
+        tracing::info!(
+            "Processing OTP request for {} via {:?}",
+            phone_number,
+            channel
+        );
 
         let otp = utils::generate_otp();
         self.repo.store_otp(&phone_number, &otp).await?;
 
         // Debug mode: Skip sending real SMS for dummy number or in debug mode
         if phone_number == "9800000000" || cfg!(debug_assertions) {
-            tracing::info!("[DEBUG] SMS skipped for {} — OTP: {}", phone_number, otp);
+            tracing::info!("[DEBUG] OTP skipped for {} — OTP: {}", phone_number, otp);
             return Ok(OtpResponse {
                 message: "OTP successfully sent (DEBUG)".to_string(),
                 expires_in_seconds: 300,
             });
         }
 
+        let notifier = NotificationService::new(self.state.clone());
+
         match channel {
             OtpChannel::Sms => {
-                let config = &self.state.config;
-                SmsProvider::new(config.sparrow_sms_token.clone(), config.sparrow_sms_sender.clone())
-                    .send_otp(&phone_number, &otp)
-                    .await?;
+                notifier.send_sms(&phone_number, &otp).await?;
             }
             OtpChannel::Whatsapp => {
-                let config = &self.state.config;
-                WhatsAppProvider::new(config.whatsapp_access_token.clone(), config.whatsapp_phone_number_id.clone())
-                    .send_otp(&phone_number, &otp)
-                    .await?;
+                notifier.send_whatsapp(&phone_number, &otp).await?;
             }
-        }
+        };
 
         Ok(OtpResponse {
             message: "OTP successfully sent".to_string(),
@@ -52,7 +56,11 @@ impl AuthService {
         })
     }
 
-    pub async fn verify_otp(&self, phone_number: String, otp: String) -> Result<VerifyOtpResponse, AppError> {
+    pub async fn verify_otp(
+        &self,
+        phone_number: String,
+        otp: String,
+    ) -> Result<VerifyOtpResponse, AppError> {
         tracing::info!("Verifying OTP for {}", phone_number);
 
         let stored = self.repo.get_otp(&phone_number).await?;
